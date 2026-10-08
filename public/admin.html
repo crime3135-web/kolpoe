@@ -1,0 +1,20 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Crystal Deals — менеджер</title>
+<style>body{font:14px system-ui,sans-serif;background:#0b0e1f;color:#e9ecff;margin:0;padding:14px;max-width:900px;margin:auto}h2{font-size:16px;margin:22px 0 8px}
+input,button{font:inherit;padding:9px 12px;border-radius:9px;border:1px solid #252d57;background:#141a35;color:inherit}button{cursor:pointer;background:#5ee7ff;color:#06142a;font-weight:700;border:0}button.r{background:#ff6b8b}
+.c{background:#141a35;border:1px solid #252d57;border-radius:12px;padding:12px;margin:8px 0;overflow-wrap:anywhere}.m{color:#8f98c9;font-size:12px}.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}</style></head><body>
+<h1 style="font-size:18px">Crystal Deals · менеджер</h1>
+<div class="row"><input id="pw" type="password" placeholder="Пароль администратора"><button onclick="ld()">Войти</button></div><div id="o"></div>
+<script>
+const $=s=>document.querySelector(s),E=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let P=sessionStorage.getItem('ap')||'';if(P){$('#pw').value=P;ld()}
+async function q(a,b){const r=await fetch('/api/admin/'+a,{method:'POST',headers:{'Content-Type':'application/json','x-admin':P},body:JSON.stringify(b||{})});return r.json()}
+async function ld(){P=$('#pw').value;const j=await q('list');if(j.err){$('#o').textContent=j.err;return}sessionStorage.setItem('ap',P);
+const f=n=>Object.entries(n).filter(([k,v])=>v>0).map(([k,v])=>v+' '+k).join(', ')||'0';
+$('#o').innerHTML=`<h2>Заявки на вывод</h2>${j.wd.map(w=>`<div class="c"><b>#${w.id}</b> ${E(w.u)} · ${w.amt} RUB-экв. · <b>${w.st}</b><div class="m">${E(w.rq)} · ${new Date(w.t).toLocaleString('ru')}</div>${w.st=='pending'?`<div class="row"><button onclick="a('wd.done','${w.id}')">Выплачено</button><button class="r" onclick="a('wd.reject','${w.id}')">Отклонить и вернуть</button></div>`:''}</div>`).join('')||'<p class="m">Нет</p>'}
+<h2>Сделки</h2>${j.deals.map(d=>`<div class="c"><b>#${d.id}</b> ${E(d.type)} · ${d.amt} RUB-экв. · <b>${d.st}</b><div class="m">${E(d.seller)} → ${E(d.buyer||'—')} · сообщений: ${d.msgs} · ${E(d.lk)}</div>${d.st=='paid'||d.st=='handed'?`<div class="row"><button onclick="a('deal.release','${d.id}')">Выплатить продавцу</button><button class="r" onclick="a('deal.refund','${d.id}')">Вернуть покупателю</button></div>`:''}</div>`).join('')||'<p class="m">Нет</p>'}
+<h2>Ручное пополнение</h2><div class="row"><input id="cn" placeholder="Ник"><input id="cc" placeholder="Валюта (TON)" size="8"><input id="ca" placeholder="Сумма" size="8"><button onclick="cr()">Зачислить</button></div>
+<h2>Пополнения TON</h2>${j.pay.map(p=>`<div class="c"><b>${p.c}</b> ${E(p.u)} · ${p.amt} TON · <b>${p.st}</b><div class="m">${new Date(p.t).toLocaleString('ru')}</div></div>`).join('')||'<p class="m">Нет</p>'}
+<h2>Пользователи (${j.users.length})</h2>${j.users.map(u=>`<div class="c"><b>${E(u.nick)}</b><div class="m">${f(u.w)}</div></div>`).join('')}`}
+async function a(m,id){if(!confirm('Подтвердить действие?'))return;const j=await q(m,{id});if(j.err)alert(j.err);ld()}
+async function cr(){const j=await q('credit',{nick:$('#cn').value,cur:$('#cc').value.toUpperCase(),amt:$('#ca').value});if(j.err)alert(j.err);ld()}
+</script></body></html>
